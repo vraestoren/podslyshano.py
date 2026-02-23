@@ -5,6 +5,6 @@ Mobile-API for [podslyshano](https://play.google.com/store/apps/details?id=ru.id
 ```python
 from podslyshano import Podslyshano
 
-podslyshano = podslyshano.Podslyshano()
+podslyshano = Podslyshano()
 podslyshano.login(email="example@gmail.com", password="password")
 ```

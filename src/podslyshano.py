@@ -12,9 +12,28 @@ class Podslyshano:
         self.user_id = None
         self.auth_token = None
 
+    def _get(self, endpoint: str) -> dict:
+        return self.session.get(
+            f"{self.api}{endpoint}").json()
+
+    def _post(self, endpoint: str, data: dict = None) -> dict:
+        return self.session.post(
+            f"{self.api}{endpoint}", data=data).json()
+
+    def _put(self, endpoint: str) -> dict:
+        return self.session.put(
+            f"{self.api}{endpoint}").json()
+
+    def _delete(self, endpoint: str) -> dict:
+        return self.session.delete(
+            f"{self.api}{endpoint}").json()
+
+    def _filter(self, data: dict) -> dict:
+        return {key: value for key, value in data.items() if value is not None}
+
     def login(self, email: str, password: str) -> dict:
-        response = self.session.post(
-            f"{self.api}/auth/sign_in?type=email&email={email}&password={password}").json()
+        response = self._post(
+            f"/auth/sign_in?type=email&email={email}&password={password}")
         if "user" in response:
             self.user_id = response["user"]["id"]
             self.auth_token = response["user"]["auth_token"]
@@ -28,111 +47,90 @@ class Podslyshano:
             device_type: str = "android",
             captcha: str = None,
             captcha_key: str = None) -> dict:
-        params = {
+        params = self._filter({
             "captcha": captcha,
             "captcha_key": captcha_key
-        }
-        filtered_params = {
-            key: value for key, value in params.items() if value is not None
-        }
+        })
         return self.session.post(
             f"{self.api}/auth/sign_up?device_type={device_type}&type=email&email={email}&password={password}",
-            params=filtered_params).json()
+            params=params).json()
 
     def get_account_profile(self) -> dict:
-        return self.session.get( f"{self.api}/profile/me").json()
+        return self._get("/profile/me")
 
     def get_new_posts(self) -> dict:
-        return self.session.get(f"{self.api}/posts").json()
+        return self._get("/posts")
 
     def get_random_posts(self) -> dict:
-        return self.session.get(f"{self.api}/posts/random").json()
+        return self._get("/posts/random")
 
     def get_best_posts(self) -> dict:
-        return self.session.get(f"{self.api}/posts/top/day").json()
+        return self._get("/posts/top/day")
 
     def get_categories(self) -> dict:
-        return self.session.get(
-            f"{self.api}/profile/categories").json()
+        return self._get("/profile/categories")
 
     def get_post_likes(self, post_id: int) -> dict:
-        return self.session.get(
-            f"{self.api}/posts/{post_id}/likes").json()
+        return self._get(f"/posts/{post_id}/likes")
 
     def add_to_bookmarks(
             self,
             post_id: int = None,
             comment_id: int = None) -> dict:
-        return self.session.post(
-            f"{self.api}/bookmarks/posts/{post_id}" if post_id else f"{self.api}/bookmarks/comments/{comment_id}").json()
+        if post_id:
+            return self._post(f"/bookmarks/posts/{post_id}")
+        return self._post(f"/bookmarks/comments/{comment_id}")
 
     def delete_from_bookmarks(
             self,
             post_id: int = None,
             comment_id: int = None) -> dict:
-        return self.session.delete(
-            f"{self.api}/bookmarks/posts/{post_id}" if post_id else f"{self.api}/bookmarks/comments/{comment_id}").json()
+        if post_id:
+            return self._delete(f"/bookmarks/posts/{post_id}")
+        return self._delete(f"/bookmarks/comments/{comment_id}")
 
-    def like_post(
-            self,
-            post_id: int,
-            type: str) -> dict:
-        return self.session.post(
-            f"{self.api}/posts/{post_id}/like?type={type}").json()
+    def like_post(self, post_id: int, like_type: str) -> dict:
+        return self._post(f"/posts/{post_id}/like?type={like_type}")
 
     def unlike_post(self, post_id: int) -> dict:
-        return self.session.delete(
-            f"{self.api}/posts/{post_id}/like").json()
+        return self._delete(f"/posts/{post_id}/like")
 
     def get_post_comments(self, post_id: int) -> dict:
-        return self.session.get(
-            f"{self.api}/posts/{post_id}/comments").json()
+        return self._get(f"/posts/{post_id}/comments")
 
     def get_post_latest_comments(self, post_id: int) -> dict:
-        return self.session.get(
-            f"{self.api}/posts/{post_id}/comments/latest").json()
+        return self._get(f"/posts/{post_id}/comments/latest")
 
     def get_post_best_comments(self, post_id: int) -> dict:
-        return self.session.get(
-            f"{self.api}/posts/{post_id}/comments/top").json()
+        return self._get(f"/posts/{post_id}/comments/top")
 
     def get_email_confirmation(self) -> dict:
-        return self.session.post(
-            f"{self.api}/profile/email_confirmation").json()
+        return self._post("/profile/email_confirmation")
 
     def comment_post(
             self,
             post_id: int,
             text: str,
             parent_id: int = None) -> dict:
-        data = {
-            "text_fixed": text
-        }
+        data = {"text_fixed": text}
         if parent_id:
             data["parent_id"] = parent_id
-        return self.session.post(
-            f"{self.api}/posts/{post_id}/comments",
-            data=data).json()
+        return self._post(f"/posts/{post_id}/comments", data)
 
     def change_email(self, email: str) -> dict:
-        return self.session.put(
-            f"{self.api}/profile/me?user[email]={email}").json()
+        return self._put(f"/profile/me?user[email]={email}")
 
     def report_comment(self, comment_id: int) -> dict:
-        return self.session.post(
-            f"{self.api}/comments/{comment_id}/complain").json()
+        return self._post(f"/comments/{comment_id}/complain")
 
     def like_comment(self, comment_id: int) -> dict:
-        return self.session.post(
-            f"{self.api}/comments/{comment_id}/like").json()
+        return self._post(f"/comments/{comment_id}/like")
 
-    def unlike_comment(self) -> dict:
-        return self.session.delete(
-            f"{self.api}/comments/{comment_id}/cancel_like").json()
+    def unlike_comment(self, comment_id: int) -> dict:
+        return self._delete(f"/comments/{comment_id}/cancel_like")
 
     def get_user_profile(self, user_id: int) -> dict:
-        return self.session.get(
-            f"{self.api}/profile/{user_id}").json()
+        return self._get(f"/profile/{user_id}")
 
     def block_user(self, user_id: int) -> int:
         return self.session.post(
@@ -143,30 +141,24 @@ class Podslyshano:
             f"{self.api}/profile/{user_id}/unban").status_code
 
     def get_user_comments(self, user_id: int) -> dict:
-        return self.session.get(
-            f"{self.api}/comments/for_user/{user_id}").json()
+        return self._get(f"/comments/for_user/{user_id}")
 
     def get_user_likes(self, user_id: int) -> dict:
-        return self.session.get(
-            f"{self.api}/posts/liked?user_id={user_id}").json()
+        return self._get(f"/posts/liked?user_id={user_id}")
 
     def report_user(self, user_id: int, reason: str) -> dict:
-        return self.session.post(
-            f"{self.api}/profile/{user_id}/complain?reason_text={reason}").json()
+        return self._post(
+            f"/profile/{user_id}/complain?reason_text={reason}")
 
     def post_secret(self, note: str) -> dict:
-        data = {
-            "note": note
-        }
-        return self.session.post(
-            f"{self.api}/secrets", data=data).json()
+        data = {"note": note}
+        return self._post("/secrets", data)
 
     def get_notifications(self) -> dict:
-        return self.session.get(f"{self.api}/activities").json()
+        return self._get("/activities")
 
     def get_block_list(self) -> dict:
-        return self.session.get(
-            f"{self.api}/profile/banned_users").json()
+        return self._get("/profile/banned_users")
 
     def edit_profile(
             self,
@@ -174,9 +166,9 @@ class Podslyshano:
             nickname: str = None,
             show_comments: bool = False,
             show_likes: bool = True) -> dict:
-        url = f"{self.api}/profile/me?user[show_comments]={show_comments}&user[show_likes]={show_likes}"
+        url = f"/profile/me?user[show_comments]={show_comments}&user[show_likes]={show_likes}"
         if bio:
             url += f"&user[bio]={bio}"
         if nickname:
             url += f"&user[fullname]={nickname}"
-        return self.session.put(url).json()
+        return self._put(url)
